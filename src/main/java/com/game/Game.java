@@ -5,8 +5,8 @@ import com.util.Time;
 
 public class Game {
     private static final int TARGET_FPS = 60;
-    private static final long TARGET_FRAME_TIME_NANOSECONDS = 1_000_000_000 / TARGET_FPS;
-    private static final long THREAD_SLEEP_TIME_MILLISECONDS = 5;
+    private static final long TARGET_FRAME_TIME_NS = Time.NANOSECONDS_IN_SECOND / TARGET_FPS;
+    private static final long THREAD_SLEEP_TIME_MS = 5;
     private final GameStatistics gameStatistics;
 
     private boolean isRunning;
@@ -19,42 +19,75 @@ public class Game {
     }
 
     public void start() {
+        //already running, so don't start another game loop
         if (isRunning) return;
         isRunning = true;
 
-        long startTime;
-        long endTime = Time.getTimeNano();
-        long elapsedTime = 0L;
-        long sleepTime;
+        //times in nanoseconds
+        long gameTimeNS = 0; //total time passed in game
+        long lastSecTimeNS = 0; //time at last update of fps and tps
 
-        int fps = 60;
-        int frames = 0;
+        long startTimeNS = Time.getTimeNano(); //time at beginning of update cycle
+        long endTimeNS; //time at end of update cycle
+        long lastTimeNS; //time at the beginning of the previous update cycle
+        long elapsedTimeNS = 0L; //time passed between update cycles
+        long updateTimeNS; //time passed for an update
+        long sleepTimeNS; //time a thread should sleep
 
+        int fps; //current frames per second
+        int tps; //current ticks per second
+        int framesCount = 0; //frames since last second
+        int tickCount = 0; //ticks since last second
+
+        //game loop
         while(isRunning) {
-            startTime = Time.getTimeNano();
+            //update time of update cycle starting
+            lastTimeNS = startTimeNS;
+            startTimeNS = Time.getTimeNano();
 
-            tick(Time.getDeltaTime(endTime,startTime));
+            //time in between update cycles
+            elapsedTimeNS += startTimeNS - lastTimeNS;
+            gameStatistics.updateElapsedTime(startTimeNS - lastTimeNS); //todo events instead
 
-            render();
-            frames++;
-            gameStatistics.updateFrameCount(); //todo events instead
+            //in case of small accumulations of time that adds up, run through extra ticks if needed
+            while (elapsedTimeNS >= TARGET_FRAME_TIME_NS) {
+                tick(Time.getDeltaTime(lastTimeNS, startTimeNS)); //ticks with delta time converted to seconds
+                tickCount++;
+                gameStatistics.updateTickCount(); //todo events instead
 
-            endTime = Time.getTimeNano();
-            sleepTime = TARGET_FRAME_TIME_NANOSECONDS - (endTime - startTime);
-            elapsedTime += endTime - startTime;
-            gameStatistics.updateElapsedTime(elapsedTime); //todo events instead
+                elapsedTimeNS -= TARGET_FRAME_TIME_NS;
+                gameTimeNS += TARGET_FRAME_TIME_NS;
+                gameStatistics.updateGameTime(gameTimeNS); //todo events instead
 
-            if (elapsedTime >= 1) {
-                elapsedTime--;
-                fps = frames;
-                frames = 0;
+                //one second has passed since last fps and tps update
+                if (gameTimeNS - lastSecTimeNS >= Time.NANOSECONDS_IN_SECOND) {
+                    lastSecTimeNS += Time.NANOSECONDS_IN_SECOND;
+                    fps = framesCount;
+                    tps = tickCount;
+                    framesCount = 0;
+                    tickCount = 0;
 
-                gameStatistics.updateFPS(fps); //todo events instead
+                    gameStatistics.updateFPS(fps); //todo events instead
+                    gameStatistics.updateTPS(tps); //todo events instead
+                }
             }
 
-            if (sleepTime > 0) {
+            render();
+            framesCount++;
+            gameStatistics.updateFrameCount(); //todo events instead
+
+            //calculate how much extra time for this update cycle
+            endTimeNS = Time.getTimeNano();
+            updateTimeNS = endTimeNS - startTimeNS;
+            sleepTimeNS = TARGET_FRAME_TIME_NS - updateTimeNS;
+
+            //sleep the thread in small increments to pass off that time
+            while (sleepTimeNS > THREAD_SLEEP_TIME_MS * Time.NANOSECONDS_IN_MILLISECOND) {
                 try {
-                    Thread.sleep(THREAD_SLEEP_TIME_MILLISECONDS);
+                    //thread sleep is in milliseconds todo update to ScheduledThreadPoolExecutor
+                    Thread.sleep(THREAD_SLEEP_TIME_MS);
+
+                    sleepTimeNS -= THREAD_SLEEP_TIME_MS * Time.NANOSECONDS_IN_MILLISECOND;
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
