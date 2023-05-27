@@ -118,7 +118,6 @@ public class Game {
             //sleep the thread in small increments to pass off that time
             while (sleepTimeNS > THREAD_SLEEP_TIME_MS * Time.NANOSECONDS_IN_MILLISECOND) {
                 try {
-                    //thread sleep is in milliseconds todo update to ScheduledThreadPoolExecutor
                     Thread.sleep(THREAD_SLEEP_TIME_MS);
 
                     sleepTimeNS -= THREAD_SLEEP_TIME_MS * Time.NANOSECONDS_IN_MILLISECOND;
