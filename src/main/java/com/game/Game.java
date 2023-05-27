@@ -20,6 +20,11 @@ public class Game {
         this.physicsEngine = new PhysicsEngine(this);
     }
 
+    /*
+        initialization
+        game loop
+        clean up
+     */
     public void start() {
         //already running, so don't start another game loop
         if (isRunning) return;
@@ -44,7 +49,15 @@ public class Game {
         int gameUpdateCount = 0; //game updates since last second
         int physicsUpdateCount = 0; //physics updates since last second
 
-        //game loop
+        /* game loop
+            Physics update
+            Inputs update
+            Game update
+            Render
+            - Scene render
+            - GUI render
+            Pause
+         */
         while(isRunning) {
             //update time of update cycle starting
             lastTimeNS = startTimeNS;
