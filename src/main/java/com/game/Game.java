@@ -5,7 +5,7 @@ import com.util.Time;
 
 public class Game {
     private static final int TARGET_FPS = 60;
-    private static final long TARGET_FRAME_TIME_NS = Time.NANOSECONDS_IN_SECOND / TARGET_FPS;
+    private static final long TARGET_FRAME_TIME_NS =  Time.NANOSECONDS_IN_SECOND / TARGET_FPS;
     private static final long THREAD_SLEEP_TIME_MS = 5;
     private final GameStatistics gameStatistics;
 
@@ -49,9 +49,12 @@ public class Game {
             elapsedTimeNS += startTimeNS - lastTimeNS;
             gameStatistics.updateElapsedTime(startTimeNS - lastTimeNS); //todo events instead
 
+            //user inputs
+            processInput();
+
             //in case of small accumulations of time that adds up, run through extra ticks if needed
             while (elapsedTimeNS >= TARGET_FRAME_TIME_NS) {
-                tick(Time.getDeltaTime(lastTimeNS, startTimeNS)); //ticks with delta time converted to seconds
+                tick(Time.convertNanoToSeconds(TARGET_FRAME_TIME_NS)); //ticks with delta time converted to seconds
                 tickCount++;
                 gameStatistics.updateTickCount(); //todo events instead
 
@@ -97,6 +100,10 @@ public class Game {
 
     public void stop() {
         isRunning = false;
+    }
+
+    public void processInput() {
+
     }
 
     public void tick(float dt) {
