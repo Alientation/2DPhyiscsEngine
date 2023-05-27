@@ -5,7 +5,9 @@ import com.util.Time;
 
 public class Game {
     private static final int TARGET_FPS = 60;
-    private static final long TARGET_FRAME_TIME_NS =  Time.NANOSECONDS_IN_SECOND / TARGET_FPS;
+    private static final int TARGET_PHYSICS_UPDATE_PER_SECOND = 60;
+    private static final long TARGET_UPDATE_TIME_NS =  Time.NANOSECONDS_IN_SECOND / TARGET_FPS;
+    private static final long TARGET_PHYSICS_UPDATE_TIME_NS = Time.NANOSECONDS_IN_SECOND / TARGET_PHYSICS_UPDATE_PER_SECOND;
     private static final long THREAD_SLEEP_TIME_MS = 5;
     private final GameStatistics gameStatistics;
 
@@ -34,10 +36,13 @@ public class Game {
         long updateTimeNS; //time passed for an update
         long sleepTimeNS; //time a thread should sleep
 
+        //todo use a better queue based system to track realtime fps, tps, and pups
         int fps; //current frames per second
-        int tps; //current ticks per second
+        int tps; //current game updates per second
+        int pups; //current physics updates per second
         int framesCount = 0; //frames since last second
-        int tickCount = 0; //ticks since last second
+        int gameUpdateCount = 0; //game updates since last second
+        int physicsUpdateCount = 0; //physics updates since last second
 
         //game loop
         while(isRunning) {
@@ -49,41 +54,53 @@ public class Game {
             elapsedTimeNS += startTimeNS - lastTimeNS;
             gameStatistics.updateElapsedTime(elapsedTimeNS); //todo events instead
 
+            //physics todo decide whether to have physics calls happen together appropriately in tandem with update calls
+            long tempElapsedTime = elapsedTimeNS;
+            while (tempElapsedTime >= TARGET_PHYSICS_UPDATE_TIME_NS) {
+                updatePhysics(Time.convertNanoToSeconds(TARGET_PHYSICS_UPDATE_TIME_NS));
+                physicsUpdateCount++;
+                gameStatistics.updatePhysicsUpdateCount(); //todo events instead
+
+                tempElapsedTime-=TARGET_PHYSICS_UPDATE_TIME_NS;
+            }
+
             //user inputs
             processInput();
 
             //in case of small accumulations of time that adds up, run through extra ticks if needed
-            while (elapsedTimeNS >= TARGET_FRAME_TIME_NS) {
-                tick(Time.convertNanoToSeconds(TARGET_FRAME_TIME_NS)); //ticks with delta time converted to seconds
-                tickCount++;
-                gameStatistics.updateTickCount(); //todo events instead
+            while (elapsedTimeNS >= TARGET_UPDATE_TIME_NS) {
+                updateGame(Time.convertNanoToSeconds(TARGET_UPDATE_TIME_NS)); //ticks with delta time converted to seconds
+                gameUpdateCount++;
+                gameStatistics.updateGameUpdateCount(); //todo events instead
 
-                elapsedTimeNS -= TARGET_FRAME_TIME_NS;
-                gameStatistics.updateElapsedTime(elapsedTimeNS); //todo events instead
-                gameTimeNS += TARGET_FRAME_TIME_NS;
+                elapsedTimeNS -= TARGET_UPDATE_TIME_NS;
+                gameTimeNS += TARGET_UPDATE_TIME_NS;
                 gameStatistics.updateGameTime(gameTimeNS); //todo events instead
 
                 //one second has passed since last fps and tps update
                 if (gameTimeNS - lastSecTimeNS >= Time.NANOSECONDS_IN_SECOND) {
                     lastSecTimeNS += Time.NANOSECONDS_IN_SECOND;
                     fps = framesCount;
-                    tps = tickCount;
+                    tps = gameUpdateCount;
+                    pups = physicsUpdateCount;
                     framesCount = 0;
-                    tickCount = 0;
+                    gameUpdateCount = 0;
+                    physicsUpdateCount = 0;
 
                     gameStatistics.updateFPS(fps); //todo events instead
                     gameStatistics.updateTPS(tps); //todo events instead
+                    gameStatistics.updatePUPS(tps); //todo events instead
                 }
             }
 
-            render((float) elapsedTimeNS / TARGET_FRAME_TIME_NS);
+            render((float) elapsedTimeNS / TARGET_UPDATE_TIME_NS);
             framesCount++;
             gameStatistics.updateFrameCount(); //todo events instead
 
             //calculate how much extra time for this update cycle
             endTimeNS = Time.getTimeNano();
             updateTimeNS = endTimeNS - startTimeNS;
-            sleepTimeNS = TARGET_FRAME_TIME_NS - updateTimeNS;
+            sleepTimeNS = TARGET_UPDATE_TIME_NS - updateTimeNS;
 
             //sleep the thread in small increments to pass off that time
             while (sleepTimeNS > THREAD_SLEEP_TIME_MS * Time.NANOSECONDS_IN_MILLISECOND) {
@@ -103,14 +120,16 @@ public class Game {
         isRunning = false;
     }
 
+    public void updatePhysics(float dt) {
+
+    }
+
     public void processInput() {
 
     }
 
-    public void tick(float dt) {
+    public void updateGame(float dt) {
 
-
-        physicsEngine.tick(dt);
     }
 
     public void render(float dt) {

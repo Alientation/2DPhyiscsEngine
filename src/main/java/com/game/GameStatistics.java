@@ -7,8 +7,10 @@ public class GameStatistics {
     //todo used event listeners to update these
     private int fps;
     private int tps;
+    private int pups;
     private int frameCount;
-    private int tickCount;
+    private int gameUpdateCount;
+    private int physicsUpdateCount;
     private long elapsedTime;
     private long gameTime;
 
@@ -24,10 +26,17 @@ public class GameStatistics {
         this.tps = newTPS;
     }
 
+    public void updatePUPS(int newPUPS) {
+        this.pups = newPUPS;
+    }
+
     public void updateFrameCount() {
         this.frameCount++;
     }
-    public void updateTickCount() { this.tickCount++; }
+    public void updateGameUpdateCount() { this.gameUpdateCount++; }
+    public void updatePhysicsUpdateCount() {
+        this.physicsUpdateCount++;
+    }
 
     public void updateElapsedTime(long elapsedTime) {
         this.elapsedTime = elapsedTime;
@@ -39,8 +48,10 @@ public class GameStatistics {
     public Game getGame() { return game; }
     public int getFps() { return this.fps; }
     public int getTps() { return this.tps; }
+    public int getPups() { return this.pups; }
     public int getFrameCount() { return this.frameCount; }
-    public int getTickCount() { return this.tickCount; }
+    public int getGameUpdateCount() { return this.gameUpdateCount; }
+    public int getPhysicsUpdateCount() { return this.physicsUpdateCount; }
     public long getElapsedTime() { return this.elapsedTime; }
     public long getGameTime() { return this.gameTime; }
 }
