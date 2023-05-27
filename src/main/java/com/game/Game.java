@@ -47,7 +47,7 @@ public class Game {
 
             //time in between update cycles
             elapsedTimeNS += startTimeNS - lastTimeNS;
-            gameStatistics.updateElapsedTime(startTimeNS - lastTimeNS); //todo events instead
+            gameStatistics.updateElapsedTime(elapsedTimeNS); //todo events instead
 
             //user inputs
             processInput();
@@ -59,6 +59,7 @@ public class Game {
                 gameStatistics.updateTickCount(); //todo events instead
 
                 elapsedTimeNS -= TARGET_FRAME_TIME_NS;
+                gameStatistics.updateElapsedTime(elapsedTimeNS); //todo events instead
                 gameTimeNS += TARGET_FRAME_TIME_NS;
                 gameStatistics.updateGameTime(gameTimeNS); //todo events instead
 
@@ -75,7 +76,7 @@ public class Game {
                 }
             }
 
-            render();
+            render((float) elapsedTimeNS / TARGET_FRAME_TIME_NS);
             framesCount++;
             gameStatistics.updateFrameCount(); //todo events instead
 
@@ -112,7 +113,7 @@ public class Game {
         physicsEngine.tick(dt);
     }
 
-    public void render() {
+    public void render(float dt) {
 
     }
 }
