@@ -7,6 +7,7 @@ import org.lwjgl.opengl.GL;
 import org.lwjgl.system.MemoryStack;
 
 import java.nio.IntBuffer;
+import java.util.HashMap;
 
 import static org.lwjgl.glfw.Callbacks.glfwFreeCallbacks;
 import static org.lwjgl.glfw.GLFW.*;
@@ -19,7 +20,7 @@ public class Window {
     public static final int INIT_HEIGHT = 500;
     public static final String INIT_TITLE = "Window";
 
-    private static Window window = null;
+    private static final HashMap<Long,Window> windows = new HashMap<>();
 
     private long glfwWindow = 0L;
     private int width, height;
@@ -28,7 +29,15 @@ public class Window {
 
     public boolean isRunning = false;
 
-    public Window() {
+    public static void framebufferSizeCallback(long window, int width, int height) {
+        Window.getWindow(window).setWidth(width);
+        Window.getWindow(window).setHeight(height);
+
+        glViewport(0,0,width,height);
+    }
+
+
+    private Window() {
         this(INIT_WIDTH, INIT_HEIGHT, INIT_TITLE);
     }
 
@@ -37,6 +46,10 @@ public class Window {
         this.height = height;
         this.title = title;
         this.aspect = (float) width / height;
+    }
+
+    public static Window getWindow(long window) {
+        return windows.get(window);
     }
 
     public void run() {
@@ -48,6 +61,7 @@ public class Window {
         // Free the window callbacks and destroy the window
         glfwFreeCallbacks(glfwWindow);
         glfwDestroyWindow(glfwWindow);
+        windows.put(glfwWindow,null);
 
         // Terminate GLFW and free the error callback
         glfwTerminate();
@@ -67,18 +81,21 @@ public class Window {
         glfwDefaultWindowHints(); // optional, the current window hints are already the default
         glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE); // the window will stay hidden after creation
         glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE); // the window will be resizable
-        glfwWindowHint(GLFW_MAXIMIZED, GLFW_TRUE);
 
         // Create the window
         glfwWindow = glfwCreateWindow(this.width, this.height, this.title, NULL, NULL);
         if (glfwWindow == NULL)
             throw new RuntimeException("Failed to create the GLFW window");
 
+        windows.put(glfwWindow,this);
+
         // Setup a key callback. It will be called every time a key is pressed, repeated or released.
         glfwSetKeyCallback(glfwWindow, (window, key, scancode, action, mods) -> {
             if ( key == GLFW_KEY_ESCAPE && action == GLFW_RELEASE )
                 glfwSetWindowShouldClose(window, true); // We will detect this in the rendering loop
         });
+
+        glfwSetFramebufferSizeCallback(glfwWindow,Window::framebufferSizeCallback);
 
         /* todo figure out what these are
         glfwSetFramebufferSizeCallback(glfwWindow, Window::framebufferSizeCallback);
@@ -142,6 +159,16 @@ public class Window {
             // invoked during this call.
             glfwPollEvents();
         }
+    }
+
+    public void setWidth(int width) {
+        this.width = width;
+        this.aspect = (float) width / height;
+    }
+
+    public void setHeight(int height) {
+        this.height = height;
+        this.aspect = (float) width / height;
     }
 
     public int getWidth() { return this.width; }
