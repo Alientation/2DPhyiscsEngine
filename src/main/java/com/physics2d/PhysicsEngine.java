@@ -10,7 +10,7 @@ public class PhysicsEngine {
         this.game = game;
     }
 
-    public void tick(float dt) {
+    public void update(float dt) {
 
     }
 
