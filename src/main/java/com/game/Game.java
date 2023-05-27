@@ -102,7 +102,7 @@ public class Game {
 
                     gameStatistics.updateFPS(fps); //todo events instead
                     gameStatistics.updateTPS(tps); //todo events instead
-                    gameStatistics.updatePUPS(tps); //todo events instead
+                    gameStatistics.updatePUPS(pups); //todo events instead
                 }
             }
 
