@@ -7,18 +7,26 @@ public class Time {
     public static long timeStarted = System.nanoTime();
 
     public static float getTimeSeconds() {
-        return (float) ((System.nanoTime() - timeStarted) * SECONDS_TO_NANOSECOND);
+        return convertNanoToSeconds(System.nanoTime() - timeStarted);
     }
 
     public static float getDeltaTime(long prevTime) {
-        return (float) ((System.nanoTime() - prevTime) * SECONDS_TO_NANOSECOND);
+        return convertNanoToSeconds(System.nanoTime() - prevTime);
     }
 
     public static float getDeltaTime(long prevTime, long curTime) {
-        return (float) ((curTime - prevTime) * SECONDS_TO_NANOSECOND);
+        return convertNanoToSeconds(curTime - prevTime);
     }
 
     public static long getTimeNano() {
         return System.nanoTime() - timeStarted;
+    }
+
+    public static float convertNanoToSeconds(long nanoTime) {
+        return (float) (nanoTime * SECONDS_TO_NANOSECOND);
+    }
+
+    public static float convertNanoToMilliseconds(long nanoTime) {
+        return (float) (nanoTime * SECONDS_TO_NANOSECOND / NANOSECONDS_IN_MILLISECOND);
     }
 }
