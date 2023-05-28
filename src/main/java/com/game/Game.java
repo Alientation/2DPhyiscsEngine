@@ -1,7 +1,15 @@
 package com.game;
 
 import com.physics2d.PhysicsEngine;
+import com.renderer.Renderer;
+import com.ui.Window;
 import com.util.Time;
+import org.lwjgl.glfw.GLFWErrorCallback;
+import org.lwjgl.opengl.GL11;
+
+import static org.lwjgl.glfw.GLFW.*;
+import static org.lwjgl.opengl.GL11.*;
+import static org.lwjgl.opengl.GL11C.GL_QUADS;
 
 public class Game {
     private static final int TARGET_FPS = 60;
@@ -9,8 +17,12 @@ public class Game {
     private static final long TARGET_UPDATE_TIME_NS =  Time.NANOSECONDS_IN_SECOND / TARGET_FPS;
     private static final long TARGET_PHYSICS_UPDATE_TIME_NS = Time.NANOSECONDS_IN_SECOND / TARGET_PHYSICS_UPDATE_PER_SECOND;
     private static final long THREAD_SLEEP_TIME_MS = 5;
-    private final GameStatistics gameStatistics;
 
+    private final GameStatistics gameStatistics;
+    private GLFWErrorCallback errorCallback;
+
+    private Window window;
+    private Renderer renderer;
     private boolean isRunning;
     private final PhysicsEngine physicsEngine;
 
@@ -18,18 +30,27 @@ public class Game {
         this.isRunning = false;
         this.gameStatistics = new GameStatistics(this);
         this.physicsEngine = new PhysicsEngine(this);
+        this.renderer = new Renderer();
     }
 
-    /*
-        initialization
-        game loop
-        clean up
-     */
-    public void start() {
-        //already running, so don't start another game loop
-        if (isRunning) return;
-        isRunning = true;
+    public void init() {
+        /* Set error callback */
+        errorCallback = GLFWErrorCallback.createPrint(System.err); //prints to console
+        glfwSetErrorCallback(errorCallback);
 
+        /* Initialize GLFW */
+        if (!glfwInit()) {
+            throw new IllegalStateException("Unable to initialize GLFW!");
+        }
+
+        window = new Window();
+
+        //renderer.init();
+
+        isRunning = true;
+    }
+
+    public void gameLoop() {
         //times in nanoseconds
         long gameTimeNS = 0; //total time passed in game
         long lastSecTimeNS = 0; //time at last update of fps and tps
@@ -59,6 +80,11 @@ public class Game {
             Pause
          */
         while(isRunning) {
+            if (window.isClosing()) {
+                isRunning = false;
+                break;
+            }
+
             //update time of update cycle starting
             lastTimeNS = startTimeNS;
             startTimeNS = Time.getTimeNano();
@@ -75,6 +101,7 @@ public class Game {
                 gameStatistics.updatePhysicsUpdateCount(); //todo events instead
 
                 tempElapsedTime-=TARGET_PHYSICS_UPDATE_TIME_NS;
+
             }
 
             //user inputs
@@ -100,6 +127,10 @@ public class Game {
                     gameUpdateCount = 0;
                     physicsUpdateCount = 0;
 
+                    System.out.println("fps: " + fps);
+                    System.out.println("tps: " + tps);
+                    System.out.println("pups: " + pups);
+
                     gameStatistics.updateFPS(fps); //todo events instead
                     gameStatistics.updateTPS(tps); //todo events instead
                     gameStatistics.updatePUPS(pups); //todo events instead
@@ -107,6 +138,9 @@ public class Game {
             }
 
             render((float) elapsedTimeNS / TARGET_UPDATE_TIME_NS);
+
+            /* Update window render to show the new screen */
+            window.update();
             framesCount++;
             gameStatistics.updateFrameCount(); //todo events instead
 
@@ -114,6 +148,9 @@ public class Game {
             endTimeNS = Time.getTimeNano();
             updateTimeNS = endTimeNS - startTimeNS;
             sleepTimeNS = TARGET_UPDATE_TIME_NS - updateTimeNS;
+
+            //if (window.isVSyncEnabled())
+                //continue;
 
             //sleep the thread in small increments to pass off that time
             while (sleepTimeNS > THREAD_SLEEP_TIME_MS * Time.NANOSECONDS_IN_MILLISECOND) {
@@ -126,6 +163,28 @@ public class Game {
                 }
             }
         }
+    }
+
+    public void dispose() {
+        //renderer.dispose();
+        window.dispose();
+
+        glfwTerminate();
+        errorCallback.free();
+    }
+
+    /*
+        initialization
+        game loop
+        clean up
+     */
+    public void start() {
+        //already running, so don't start another game loop
+        if (isRunning) return;
+
+        init();
+        gameLoop();
+        dispose();
     }
 
     public void stop() {
@@ -146,5 +205,10 @@ public class Game {
 
     public void render(float dt) {
 
+    }
+
+    public static void main(String[] args) {
+        Game game = new Game();
+        game.start();
     }
 }
